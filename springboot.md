@@ -75,9 +75,21 @@ springBoot是不需配置文件的spring+springMVC，开发效率高。
 
    （javax.servlet-jstl; javax.servlet-api; javax.servlet.jsp-api）
 
+   ```xml
+   <dependency>
+        <groupId>javax.servlet.jsp</groupId>
+        <artifactId>javax.servlet.jsp-api</artifactId>
+         <version>2.3.1</version>
+   </dependency>
+   ```
+
+   
+
 3. 创建一个存放jsp的目录，一般叫做webapp
 
-4. 需要在pom.xml指定jsp文件编译后的存放目录
+4. 点击项目，点击webapp，点击+，选择刚建好的文件夹
+
+5. 需要在pom.xml指定jsp文件编译后的存放目录
 
    ```xml
    <bulid>
@@ -91,11 +103,14 @@ springBoot是不需配置文件的spring+springMVC，开发效率高。
    </bulid>
    ```
 
-5. 创建Controller，访问jsp
+6. 创建Controller，访问jsp
 
-6. 在application.properties文件中配置视图解析器
+7. 在application.properties文件中配置视图解析器
 
-   spring.mvc.view.prefix=/  (表示src/main/webapp)
+   ```properties
+   spring.mvc.view.prefix=/
+   spring.mvc.view.suffix=.jsp
+   ```
 
    
 
@@ -479,19 +494,636 @@ spring.redis.port=6379
 
 把k，v经过了序列化存到redis，kv是序列化的内容，不能直接识别
 
+### 序列化
+
 序列化：把对象转化为可传输的子接序列过程叫做序列化
 
 反序列化：把字节序列还原为对象的过程称为反序列化
 
 目的：为了对象可以跨平台存储，进行网络传输
 
+设置序列化机制：
+
+```java
+@RestController
+public class MyController {
+
+    @Resource
+    private RedisTemplate redisTemplate;
+
+    @GetMapping("/set/{name}/{age}")
+    public String set(@PathVariable String name, @PathVariable String age){
+        reidsTemplate.setKeySerializer(new StringReidsSerializer());
+        reidsTemplate.setValueSerializer(new StringReidsSerializer());
+        
+        //若把值作为json序列化
+        //redisTemplate.setValueSerializer( new Jackson2JsonRedisSerizlizer(Student.Class) );
+        
+        redisTemplate.opsForValue().set(name,age);
+        return "succeed!";
+    }
+
+}
+```
+
+## 八、集成Dubbo
+
+### 创建接口module
+
+1. 按照Dubbo官方开发建议，创建一个接口项目，该项目只定义接口和model类。
+2. 项目名称：interface-api
+3. 此项目就是一个普通的maven项目
+
+### 服务提供者module
+
+1. 实现api项目中的接口
+
+   ```java
+   //使用dubbo中的注解暴露服务
+   @DubboService(interfaceClass = StudentService.class, version = "1.0", timeout = 5000)
+   public class StudentServiceImpl implements StudentService {
+       @Override
+       public Student queryStudent(Integer id) {
+           Student student = new Student();
+           student.setId(001);
+           student.setName("Jack");
+           student.setAge(18);
+           return student;
+       }
+   }
+   ```
+
+2. 项目名称：service-provider
+
+3. 使用Spring Boot Initializer 创建项目，不用选择依赖
+
+4. maven中加入dubbo依赖 (以及排除依赖)
+
+   ```xml
+   <!--加入公共项目的gav-->
+   <dependency>
+       <groupId>com.xj</groupId>
+       <artifactId>interface-api</artifactId>
+       <version>1.0-SNAPSHOT</version>
+   </dependency>
+   
+   <!--dubbo依赖-->
+   <dependency>
+       <groupId>org.apache.dubbo</groupId>
+       <artifactId>dubbo-spring-boot-starter</artifactId>
+       <version>2.7.8</version>
+   </dependency>
+   
+   <!--zookeeper依赖-->
+   <dependency>
+       <groupId>org.apache.dubbo</groupId>
+       <artifactId>dubbo-dependencies-zookeeper</artifactId>
+       <version>2.7.8</version>
+       <type>pom</type>
+       <exclusions>
+           <exclusion>
+               <artifactId>slf4j-log4j12</artifactId>
+               <groupId>org.slf4j</groupId>
+           </exclusion>
+       </exclusions>
+   </dependency>
+   ```
+
+5. 配置application.properties
+
+   ```properties
+   #配置服务名称 dubbo:application name="名称"
+   spring.application.name=studentservice-provider
+   
+   #配置扫描的包，扫描@DubboService
+   dubbo.scan.base-packages=com.xj.service
+   
+   #配置dubbo协议
+   #dubbo.protocol.name=dubbo
+   #dubbo.protocol.port=20881
+   
+   #注册中心
+   dubbo.registry.address=zookeeper://localhost:2181
+   ```
+
+6. 在启动类上加@EnableDubbo
+
+### 创建消费者module
+
+1. 项目名称：consumer
+
+2. 使用Spring Boot Initializer 创建项目，加入web起步依赖
+
+3. maven中加入与提供者中相同的依赖
+
+4. 构建controller
+
+   ```java
+   @RestController
+   public class DubboController {
+   
+       //不加interfaceClass的话，默认是引用类型的数据类型
+       @DubboReference(interfaceClass = StudentService.class, version = "1.0")
+       private StudentService service;
+   
+       @GetMapping("/query/{id}")
+       public String queryStudent(@PathVariable Integer id){
+           Student student = service.queryStudent(id);
+           return student.toString();
+       }
+   }
+   ```
+
+5. 在启动类的上面加上@EnableDubbo
+
+6. 设置配置文件application.properties
+
+   ```properties
+   #指定服务名称
+   spring.application.name=consumer-application
+   #指定注册中心
+   dubbo.registry.address=zookeeper://localhost:2181
+   ```
+
+
+## 九、springboot打包
+
+### jar
+
+1. 创建了一个包含了jsp 的项目
+
+2. 修改pom.xml
+
+   指定打包后的文件名称
+
+   ```xml
+   <build>
+       <!--打包后文件的名称-->
+       <finalName>myboot</finalName>
+   </build>
+   ```
+
+   指定springboot-maven-plugin版本
+
+   ```xml
+   <plugins>
+       <plugin>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-maven-plugin</artifactId>
+           <!--打包jar，有jsp文件时，必须指定maven-plugin插件的版本是1.4.2.Release-->
+           <version>1.4.2.RELEASE</version>
+       </plugin>
+   </plugins>
+   ```
+
+   执行maven clean package，在target目录中，生成jar文件，例子是myboot.jar
+
+   执行独立的springboot项目，在cmd中 java -jar myboot.jar
+
+### war
+
+1. 创建了一个jsp应用
+
+2. 修改pom.xml
+
+   指定打包后的文件名称
+
+   ```xml
+   <build>
+       <!--打包后的文件名称-->
+       <finalName>myboot</finalName>
+   </build>
+   ```
+
+   指定jsp编译的目录
+
+   ```xml
+   <resources>
+       <resource>
+           <directory>src/main/webapp</directory>
+           <targetPath>META_INF/resources</targetPath>
+           <includes>
+               <include>**/*.*</include>
+           </includes>
+       </resource>
+       
+       <!--使用了mybatis，而且mapper文件放在src/main/java目录-->
+       <resource>
+           <directory>src/main/java</directory>
+           <includes>
+               <include>**/*.xml</include>
+           </includes>
+       </resource>
+       
+       <!--把src/main/resources下面的所有文件都包含到classes目录-->
+       <resource>
+           <directory>src/main/resources</directory>
+           <includes>
+               <include>**/*.*</include>
+           </includes>
+       </resource>
+   </resources>
+   ```
+
+   执行打包类型是war
+
+   ```xml
+   <!--打包类型-->
+   <packaging>war</packaging>
+   ```
+
+3. 主启动类继承SpringBootServletInitializer
+
+   (继承这个类，才能使用独立的tomcat服务器)
+
+   ```java
+   @SpringBootApplication
+   public class JspApplication extends SpringBootServletInitializer{
+       public static void main(String[] args){
+           SpringApplication.run(JspApplication.class, args);
+       }
+       
+       @Override
+       protected SpringApplicationBuilder configure(SpringApplicationBuilder builder){
+           return builder.sources(JspApplicatin.class);
+       }
+   }
+   ```
+
+4. 部署war
+
+   把war放到tomcat等服务器的发布目录中，tomcat为例，myboot.war放到tomcat/webapps目录。
+
+## 十、Thymeleaf模板引擎
+
+是java开发的模板技术，在服务器端运行，把处理后的数据发给浏览器，模板是作为视图层工作的，显示数据的，Thymeleaf是基于html语言，Thymleaf语法是应用在html标签中。springBoot框架集成Thymeleaf，使用Thymeleaf代替Jsp.
+
+构建项目时，模板引擎选择Thymeleaf
+
+Thymeleaf官方网站：http://www.thymeleaf.org
+
+Thymeleaf官方手册：https://www.thymeleaf.org/doc/tutorials/3.0/usingthymeleaf.html
+
+命名空间：<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+### 表达式
+
+1. 标准变量表达式：
+
+   语法：${key}
+
+   作用：获取Key对于的文本数据，key是request作用域中的key，使用request.setAttribute()
+
+   在页面中的html标签中，使用 th:text="${key}"
+
+   ```html
+   <p th:text="${user.name}">姓名</p>
+   ```
+
+2. 选择变量表达式 (星号表达式)
+
+   语法：*{key}
+
+   作用：获取这个key对应的数据，*{key}需要和 th:object 这个属性一起使用。
+
+   目的是简单获取对象的属性值。
+
+   ```html
+   <div th:object="${user}">
+       <p th:text="*{name}">姓名</p>
+   </div>
+   <!--等同于-->
+   <p th:text="*{user.name}">姓名</p>
+   ```
+
+3. 链接表达式
+
+   语法：@{url}
+
+   作用：表示链接，可以用于
+
+   ```html
+   <a href=""></a>
+   <form action=""></form>
+   <link href="">
+   <img src="">
+   ```
+
+   ```html
+   <a th:href="@{/tpl/queryAccount}">相对地址</a>
+   <a th:href="@{'/tpl/queryAccount?id=' + ${user.name}}">获取model中的数据</a>
+   <a th:href="@{/tpl/queryAccount(name=${user.name})}">传参</a>
+   ```
+
+### Thymeleaf属性
+
+属性是放在html元素中的，就是html元素的属性，加入了th: 前缀，属性的作用不变，但是它的值由模板引擎处理，属性可以使用变量表达式。
+
+```html
+<form th:action="/loginServlet" th:method="${methodAttr}"></form>
+```
+
+### th:each
+
+1. 可以循环List，Array，Map
+
+2. 语法:  
+
+```html
+<div th:each="集合循环成员[，循环的状态变量]：${key}">
+    <p th:text="${集合循环成员}"></p>
+</div>
+<!--集合循环成员，循环的状态变量：两个名称都是自定义的，“循环的状态变量”这个名称可以不定义，默认是“集合循环成员Stat”-->
+```
+
+```html
+<table>
+    <thead>
+        <tr>
+            <td>count</td>
+            <td>id</td>
+            <td>name</td>
+            <td>age</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="user:${myusers}">
+            <td th:text="${userStat.count}"></td>
+            <td th:text="${user.id}"></td>
+            <td th:text="${user.name}"></td>
+            <td th:text="${user.age}"></td>
+        </tr>
+    </tbody>
+</table>
+```
+
+3. userStat
+
+   是循环体的信息，通过该变量可以获取如下信息：
+
+   index: 当前迭代对象的index（从0开始）
+
+   count: 当前迭代对象的个数（从1开始计算）
+
+   size: 被迭代对象的大小
+
+   current: 当前迭代变量
+
+   even/odd: 布尔值，当前循环是否是偶数/基数
+
+   first: 布尔值，当前循环是否是第一个
+
+   last: 布尔值，当前循环是否是最后一个
+
+### th:if
+
+判断句，当条件为true ，显示html标签体内，反之不显示。没有else语句
+
+```html
+<div th:if="${user.age > 20}">
+    显示文本内容
+</div>
+```
+
+还有一个判断："th:unless" 只有判断为假时，才执行内容。
+
+### th:switch
+
+```html
+<div th:switch="${sex}">
+    <p th:case="f">
+        性别是女
+    </p>
+    <p th:case="m">
+        性别是女
+    </p>
+    <p th:case="*">
+        默认内容
+    </p>
+</div>
+```
+
+### th:inline
+
+1. 内联text: 在html标签外，获取表达式的值
+
+   ```html
+   <!--th:inline="text"可写可不写-->
+   <div th:inline="text">
+      <p>
+          我是[[${name}]],年龄是[[${age}]]。
+      </p>
+   </div>
+   ```
+
+2. 内联javaScript
+
+   ```html
+   <script type="text/javascript" th:inline="javascript">
+       var myname=[[${name}]];
+       var myage=[[${age}]];
+       
+       function fun(){
+           alert("姓名:" + myname + ",年龄" + myage);
+       }
+   </script>
+   ```
+
+### 文本字面量
+
+用单引号‘...’包围的字符串为文本字面量
+
+```html
+<p th:text="'姓名是'+${name}+'年龄是'+'${age}'">
+    要显示的内容
+</p>
+```
+
+### 字符串连接
+
+连接字符串有两种语法
+
+1. 语法使用单引号括起来字符串，使用+连接其他的字符串或者表达式（如上）
+
+2. 使用双竖线，|字符串和表达式|
+
+   ```html
+   <p th:text="|我是${name},年龄${city}|">
+       显示数据
+   </p>
+   ```
+
+### 运算符
+
+算数运算符： + - * / %
+
+关系比较：> < >= <= (gt, lt, ge, le)
+
+相等判断：== != (eq ne)
+
+### Thymeleaf 内置对象
+
+1. #request 表示HttpServletRequest
+2. #session 表示HttpSession
+3. session对象，表示Map对象，是#session的简单表示方式，用来获取session中指定的key的值
+4. #dates，表示与时间相关的工具类
+5. #numbers, 表示与数字相关的工具类
+6. #strings，操作字符串的工具类
+7. #lists，操作list的工具类
+
+（这些内置对象，可以在模板文件中直接使用）
+
+### 自定义模板
+
+模板是内容复用，定义一次，在其他的模板文件中多次使用。
+
+模板使用：
+
+1. 定义模板
+2. 使用模板
+
+定义语法：
+
+```html
+<!--th:fragment="模板自定义内容"-->
+```
+
+引用语法：
+
+```html
+<!--top: 模板自定义内容
+    head: 该模板所在html的名称-->
+<!--插入两种方法-->
+<div th:insert="~{head :: top}"></div>
+<div th:insert="head :: top"></div>
+<!--包含两种方法-->
+<div th:include="~{head :: top}"></div>
+<div th:include="head :: top"></div>
+```
+
+引用整个html: (同级目录)
+
+```html
+<div th:include="footer :: html"></div>
+<div th:include="footer"></div>
+```
+
+使用其他目录中的模板文件
+
+```html
+<div th:insert="common/left :: html"></div>
+<div th:insert="common/left"></div>
+```
+
+### javaScript
+
+button的用法
+
+```html
+以前写法(请放弃)：
+方式一：
+<button class="btn" th:onclick="'getName(\'' + ${person.name} + '\');'">获得名字</button>
+方式二：
+<button class="btn" th:onclick="'getName(' + ${person.name} + ');'">获得名字</button>
+方式三：
+<button th:onclick="|getName(${person.name} )|">获得名字</button>
+
+现在的写法：
+<button class="btn" th:onclick="getName([[${person.name}]]);">获得名字</button> 3.0.10版本
+```
 
 
 
+## 十一、总结
 
+### 重点注解（sss）
 
+创建对象：
 
+1. @Controller: 放在类的上面，创建控制器对象，注入到容器中
+2. @RestController：放在类的上面，创建控制器，注入到容器中。是@Controller和@ResponseBody的复合，表示该控制器里的方法返回值都是数据。
+3. @Service: 放在业务层实现类上面，创建service对象，注入到容器中。
+4. @Repository: 放在dao层的实现类上面，创建dao对象，放入到容器中。没有使用这个注解，是因为现在使用MyBatis框架，dao对象是MyBatis通过代理生成的，不需要使用@Repository，所以没有使用。
+5. @Component: 放在类的上面，创建此类的对象，放入到容器中。
 
+赋值：
+
+1. @Value: 简单类型的赋值，例如在属性的上面使用。还可以获取配置文件的数据（springboot的application.properties或yml）,例如@Value("${server.port}")
+
+2. @Autowired: 引用类型赋值自动注入，支持byName，byType。默认是byType，放在属性的上面，也可以放在构造方法的上面（推荐）。
+3. @Qualifer: 给引用类型赋值，使用byName方式。(2和3都是spring框架提供的)
+4. @Resource: 在属性上使用。来自jdk中的定义，javax.annotation。实现引用类型的自动注入，默认byName, 失败再使用byType。
+
+其他：
+
+1. @Configuration: 放在类的上面，表示是个配置类，相当于xml配置文件。
+2. @Bean: 放在方法上面，把方法的返回值对象，注入到spring容器中。
+3. @ImportResource: 加载其他的xml配置文件，把文件中的对象注入到spring容器中。
+4. @PropertySource：读取其他的properties属性配置文件。
+5. @ComponentScan: 扫描器，指定包名，扫描注解的。
+6. @ResponseBody：放在方法的上面，表示方法的返回值是数据，不是视图
+7. @RequestBody: 把请求体中的数据，读取出来，转为java对象使用。
+8. @ControllerAdvice: 控制器增强，放在类的上面，表示此类提供了方法，可以对controller增强功能。
+9. @ExceptionHandler：处理异常的，放在方法的上面
+10. @Transactional: 处理事务的，放在service实现类的public方法上面，表示此方法有事务。
+
+SpringBoot中的注解
+
+1. @SpringBootApplication: 放在启动类上面，包含了@SpringBootConfiguration@EnableAutoConfiguration@ComponentScan
+
+MyBatis相关的注解
+
+1. @Mapper：放在类的上面，让MyBatis找到接口，创建它的代理对象
+2. @MapperScan：放在主类上面，指定扫描的包，把这个包中所有的接口都创建代理对象，对象注入到容器中
+3. @Param：放在dao接口方法的形参前面，作为命名参数使用的。
+
+Dubbo注解
+
+1. @DubboService: 在提供者端使用的，暴露服务的，放在接口的实现类上面。
+
+2. @DubboReference: 在消费者端使用，引用远程服务，放在属性上面使用。
+
+3. @EnableDubbo: 放在主类上面，表示当前引用启用Dubbo功能。
+
+### 汇总配置文件
+
+提供者
+
+```properties
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/student?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8
+spring.datasource.username=root
+spring.datasource.password=333
+
+#mapper配置文件位置
+mybatis.mapper-locations=classpath:mapper/*.xml
+#指定myBatis的日志
+mybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+
+#指定redis
+spring.redis.host=localhost
+spring.redis.port=6379
+
+#配置服务名称 dubbo:application name="名称"
+spring.application.name=studentservice-provider
+#配置扫描的包，扫描@DubboService
+dubbo.scan.base-packages=com.xj.service
+#注册中心
+dubbo.registry.address=zookeeper://localhost:2181
+```
+
+消费者
+
+```properties
+#指定端口
+server.port=9001
+server.servlet.context-path=/demo
+
+#指定服务名称
+spring.application.name=consumer-application
+#指定注册中心
+dubbo.registry.address=zookeeper://localhost:2181
+```
 
 
 
