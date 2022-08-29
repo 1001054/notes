@@ -70,6 +70,12 @@
 
 ## 常用命令
 
+git status 查看当前状态
+
+git add 把修改内容添加到暂存区
+
+git commit -m 'add a new file' 把代码推送到本地库
+
 git branch 可以产看本地工程的所有git分支名称。 
 
 git branch new_branch_name 和 git checkout -b 都可以用于新建分支（默认基于当前分支节点创建），后者会自动切换到新分支。
