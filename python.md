@@ -1174,3 +1174,226 @@ def 方法名(self, 形参列表):
 6. object.\_\_dict\_\_ 对象的属性字典
 7. pass 空语句
 8. isinstance (对象，类型)  判断 “对象” 是不是 “指定类型”
+
+### 类对象
+
+在定义一个类后，解释器会创建一个类对象。
+
+### 类属性
+
+类属性从属于 “类对象” 的属性，也称为 “类变量” 。类属性从属于类对象，可以被所有实例对象共享。
+
+```python
+#类属性的定义方式
+class 类名:
+    类变量名 = 初始值
+    
+#例
+class Student:
+    school = "Sunk"
+    count = 0
+    
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+        Student.count += 1
+```
+
+在类中或者类的外面，可以通过：“类名.类变量名” 来读写。
+
+### 类方法
+
+类方法从属于 “类对象” 的方法。类方法通过装饰器@classmethod来定义
+
+```python
+class Student:
+    company = "Sunk"
+    
+    @classmethod
+    def printCompany(cls):
+        print(cls.company)
+        
+#方法调用
+Student.printCompany()
+```
+
+1. @classmethod 必须位于方法上面一行
+2. 第一个参数cls必须有；指的就是 “类对象” 本身
+3. 类方法中访问实例属性和实例方法会导致错误
+4. 子类继承父类方法时，传入cls是子类对象，而非父类对象。
+
+### 静态方法
+
+Python中允许定义与 "类对象" 无关的方法，称为 “静态方法”
+
+“静态方法” 和在模块中定义的普通函数没有区别，只不过 “静态方法” 放到了 “类的名字空间里面” ，需要通过 “类调用”
+
+```python
+class Student:
+    
+    @staticmethod
+    def add(a, b):
+        print("{0} + {1} = {2}".format(a, b, a + b))
+        
+        
+#方法调用
+Student.add(1, 1)
+```
+
+1. @staticmethod 必须位于方法上面一行
+2. 静态方法中访问实例属性和实例方法会导致错误
+
+### 析构函数和垃圾回收机制
+
+用于实现对象被销毁时所需的操作，比如释放对象占用的资源，（例如：打开的文件资源、网络连接等）
+
+Python实现自动的垃圾回收，当对象没有被引用时（引用计数为0)，由垃圾回收器调用\_\_del\_\_方法
+
+也可以通过del语句主动删除对象，从而保证调用\_\_del\_\_方法，系统会自动提供\_\_del\_\_方法，一般不需要自定义析构方法
+
+```python
+class Student:
+    def __del__(self):
+        print("销毁对象：{0}".format(self))
+       
+#调用
+student = Student()
+del student
+```
+
+### \_\_call\_\_方法和可调用对象
+
+定义了call方法的对象，称为 “可调用对象” ，即该对象可以像函数一样被调用。
+
+```python
+class SalaryAccount:
+    def __call__(self, *args, **kwargs):
+        print("print the salary")
+        return 2000
+
+
+s = SalaryAccount()
+s()
+
+```
+
+### 没有重载方法
+
+Python中，方法的参数没有类型，参数的数量也可以由可变参数控制。因此没有方法重载。
+
+如果在类体中定义了多个重名的方法，只有最后一个方法有效。
+
+### 方法的动态性
+
+Python是动态语言，因此可以动态的为类添加新的方法，或者动态的修改类的已有方法。
+
+```python
+class Student:
+    def work(self):
+        print("work...")
+
+
+def play(s):
+    print("play...")
+
+
+def work(s):
+    print("work harder...")
+
+
+Student.play = play
+student = Student()
+# 相当于Student.play(student)
+student.play()
+# 修改work方法
+Student.work = work
+student.work()
+
+
+```
+
+### 私有属性和私有方法（实现封装）
+
+python对于类的成员没有严格的访问控制限制，关于私有属性和私有方法，有如下要点：
+
+1. 通常约定，两个下划线开头的属性是私有的，其他的为公开的
+2. 类的内部可以访问私有属性（方法）
+3. 类外部不能直接访问私有属性（方法）
+4. 类外部可以通过 “_类名\_\_私有属性（方法）名” 访问私有属性（方法）
+
+```python
+class Student:
+    def __init__(self, name, age):
+        self.name = name
+        self.__age = age
+
+    def __work(self):
+        print("work...")
+
+
+student = Student("Jack", 19)
+print(student.name)
+print(student._Student__age)
+student._Student__work()
+
+```
+
+### @property装饰器
+
+将一个方法的调用方式变为 “属性调用”
+
+```python
+class Student:
+    @property
+    def school(self):
+        return "Sunk"
+
+
+student = Student()
+print(student.school)
+print(type(student.school))
+
+```
+
+### get 和 set
+
+```python
+class Student:
+    def __init__(self, name):
+        self.__name = name
+
+    def get_name(self):
+        return self.__name
+
+    def set_name(self, name):
+        self.__name = name
+
+
+student = Student("Jack")
+print(student.get_name())
+student.set_name("Jone")
+print(student.get_name())
+
+```
+
+```python
+class Student:
+    def __init__(self, name):
+        self.__name = name
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, name):
+        self.__name = name
+
+
+student = Student("Jack")
+print(student.name)
+student.name = "Jone"
+print(student.name)
+
+```
+
