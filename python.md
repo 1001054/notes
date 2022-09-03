@@ -1397,3 +1397,367 @@ print(student.name)
 
 ```
 
+### 继承
+
+```python
+class 子类类名(父类1,父类2,...):
+    类体
+    
+#例
+class Person:
+    def __init__(self, name):
+        self.name = name
+
+        
+    def print_name(self):
+        print(self.name)
+        
+        
+class Student(Person):
+    def __init__(self, name, school):
+        #必须显式的调用父类初始化方法，否则解释器不会调用
+        Person.__init__(self, name)
+        self.school = school
+        
+
+    #重写方法
+    def print_name(self):
+        print("My name is {0}.".format(self.name))
+        
+    
+#打印继承的层次结构
+print(Student.mro())
+```
+
+### object类
+
+1. __str\_\_() 方法
+
+   用于返回一个对于 “对象的描述” ，对应于内置函数 str()，经常用于 print()方法，查看对象的信息。__str\_\_() 可以重写。
+
+   ```python
+   class Student:
+       def __init__(self, name):
+           self.name = name
+           
+       def __str__(self):
+           return "学生：{0}".format(self.name)
+       
+   student = Student("Jack")
+   print(s)
+   ```
+
+   
+
+2. MRO() 方法
+
+   Python支持多继承，如果父类中有相同名字的方法，在子类中没有指定父类名时，解释器将 “从左向右” 按顺序搜索。
+
+   MRO (Method Resolution Order): 方法解析顺序。
+
+3. Super() 方法
+
+   在子类中，如果想要获得父类的方法时，可以通过 super() 来做
+
+   super() 代表父类的定义，不是父类对象。
+
+### 多态
+
+```python
+class Animal:
+    def move(self):
+        print("Moving...")
+        
+class Bird(Animal):
+    def move(self):
+        print("Flying...")
+        
+class Frog(Animal):
+    def move(self):
+        print("Jumping...")
+        
+def do(p):
+    if isinstance(p, Person):
+        p.eat()
+    else:
+        print("Can not move...")
+```
+
+### 特殊方法
+
+| 方法                   | 说明       | 例子           |
+| ---------------------- | ---------- | -------------- |
+| __init\_\_             | 构造方法   | p = Person()   |
+| __del\_\_              | 析构方法   | 对象回收       |
+| __repr\_\_,\_\_str\_\_ | 打印，转换 | print(a)       |
+| __call\_\_             | 函数调用   | a()            |
+| __getattr\_\_          | 点号运算   | a.xxx          |
+| __setattr\_\_          | 属性赋值   | a.xxx = value  |
+| __getitem\_\_          | 索引运算   | a[key]         |
+| __setitem\_\_          | 索引赋值   | a[key] = value |
+| __len\_\_              | 长度       | len(a)         |
+
+```python
+#加号运算符重载
+class Student:
+    def __init__(self, name):
+        self.name = name
+        
+    def __add__(self, other):
+        if isinstance(other, Person):
+            return "{0} and {1}".format(self.name, other.name)
+        else:
+            return "Can not add..."
+        
+        
+student1 = Student("Jack")
+student2 = Student("Jone")
+print(student1 + student2)
+```
+
+### 特殊属性
+
+Python对象中包含了很多双下划线开始和结束的属性，这些是特殊属性，有特殊用法。
+
+| 特殊方法                 | 含义                   |
+| ------------------------ | ---------------------- |
+| obj.__dict\_\_           | 对象的属性字典         |
+| obj.__class\_\_          | 对象所属的类           |
+| class.__bases\_\_        | 类的基类元组（多继承） |
+| class.__base\_\_         | 类的基类               |
+| class.__mro\_\_          | 类的层次结构           |
+| class.__subclasses\_\_() | 子类列表               |
+
+### 浅拷贝和深拷贝
+
+1. 变量的赋值操作
+
+   只是形成两个变量，实际还是指向同一个对象。
+
+2. 浅拷贝
+
+   Python 拷贝一般都是浅拷贝，拷贝时，对象包含的子对象内容不拷贝。因此，源对象和拷贝对象会引用同一个子对象
+
+3. 深拷贝
+
+   使用copy模块的deepcopy函数，会递归拷贝对象中包含的子对象。源对象和拷贝对象所拥有的子对象也不同。
+
+### 工厂模式
+
+工厂模式实现了创建者和调用者的分离，使用专门的工厂类将选择实现类、创建对象进行统一的管理和控制。
+
+```python
+class AnimalFactory:
+    def create(self, kind):
+        if kind == "cat":
+            return Cat()
+        elif kind == "dog":
+            return Dog()
+        else:
+            return "Unknown Animal kind"
+        
+class Cat:
+    pass
+
+class Dog:
+    pass
+
+
+factory = AnimalFactory()
+cat = factory.create("cat")
+dog = factory.create("dog")
+```
+
+### 单例模式
+
+核心作用是确保一个类只有一个实例，并且提供一个访问该实例的全局访问点。
+
+单例模式只生成一个实例对象，减少了对系统资源的开销。当一个对象的产生需要比较多的资源，如读取配置文件、产生其他依赖对象时，可以产生一个 “单例对象” ，然后永久驻留内存中，从而极大的降低开销。
+
+```python
+class Singleton:
+    __obj = None
+    __init_flag = True
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__obj is None:
+            cls.__obj = object.__new__(cls)
+
+        return cls.__obj
+
+    def __init__(self, name):
+        if Singleton.__init_flag:
+            self.name = name
+            Singleton.__init_flag = False
+
+
+#实际上是相同的对象
+a = Singleton("A")
+b = Singleton("B")
+print(a)
+print(b)
+
+```
+
+### 异常处理
+
+```python
+try:
+    被监控的可能引发异常的语句块
+except Exception1 as e:
+    异常处理语句块
+except Exception2 as e:
+    异常处理语句块
+except BaseException:
+    处理可能遗漏的异常
+    
+#例
+while True:
+    a = input("Please input your num:")
+    try:
+        if a.isdigit():
+            if a == "88":
+                break
+        else:
+            raise Exception("Is is not all numbers...")
+    except Exception as e:
+        print(e) 
+
+
+```
+
+### try...except...else结构
+
+如果try块中没有抛出异常，则执行else块。如果抛出异常，则执行except块，不执行else块。
+
+```python
+try:
+    a = input("a: ")
+    b = input("b: ")
+    c = float(a)/float(b)
+except Exception as e:
+    print(e)
+else:
+    print("a / b = ", c)
+```
+
+### try...except...finally结构
+
+finally块无论是否发生异常都会被执行，通常用来释放try块中申请的资源。
+
+### 常见异常
+
+1. SyntaxError：语法错误
+2. NameError：尝试访问一个没有申明的变量
+3. ZeroDivisionError：除数为0错误（零除错误）
+4. ValueError：数值错误
+5. TypeError：类型错误
+6. AttributeError：访问对象的不存在属性
+7. IndexError：索引越界异常
+8. KeyError：字典的关键字不存在
+
+### with 上下文管理
+
+with上下文管理可以自动管理资源，在with 代码块执行完毕后自动还原进入该代码之前的现场或上下文。不论何种原因跳出with块，不论是否有异常，总能保证资源正常释放。在文件操作、网络通信香港的场合非常常用。
+
+```python
+#语法结构
+with context_expr [as var]:
+    语句块
+    
+#例
+with open("d:/bb.txt") as f:
+    for line in f:
+        print(line)
+```
+
+### traceback
+
+使用Traceback模块打印异常信息
+
+```python
+import traceback
+
+try:
+    print("step1")
+    num = 1 / 0
+except:
+    traceback.print_exc()
+    
+#例
+try:
+    print("step1")
+    num = 1 / 0
+except:
+    #a为附加，w会覆盖，r为只读
+    with open("d:/a.txt", "a") as f:
+        traceback.print_exc(file = f)
+```
+
+### 自定义异常类
+
+```python
+class AgeError(Exception):
+    def __init__(self, errorInfo):
+        Exception.__init__(self)
+        self.errorInfo = errorInfo
+        
+    def __str__(self):
+        return str(self.errorInfo) + " Age is not correct. It should be between 1 and 150."
+    
+#如果为True，则模块是作为独立文件运行，可以执行测试代码
+if __name__ == "__main__":
+    age = int(input("Please input an age: "))
+    if age < 1 or age > 150:
+        raise AgeError(age)
+    else:
+        print("Age is : ", age)
+```
+
+### 文本文件和二进制文件
+
+按文件中数据组织形式，文件可以分为文本文件和二进制文件两大类
+
+1. 文本文件存储的是普通 ”字符“ 文本，python默认为unicode 字符集（两个字节表示一个字符），可以使用记事本程序打开（word不是文本文件）。
+2. 二进制文件把数据内容用 ”字节“ 进行存储，无法用记事本打开。必须使用专用的软件解码。常见的有：MP4视频文件、MP3音频文件、JPG图片、doc文档等。
+
+### 创建文件对象 open()
+
+open() 函数用于创建文件对象，基本语法格式如下：
+
+```python
+#如果只是文件名，代表在当前目录下的文件
+#也可以录入绝对路径
+open(文件名, 打开方式)
+#例
+f = open(r"d:\b.txt", "a")
+#r表示路径为原始字符串，可以减少 "\"的输入
+#第二哥参数中没有b，默认表示是文本文件
+```
+
+| 模式 | 描述                                                         |
+| ---- | ------------------------------------------------------------ |
+| r    | 读模式                                                       |
+| w    | 写模式，如果文件不存在则创建；如果存在，则重新写内容         |
+| a    | 追加模式，如果文件不存在则创建；如果文件存在，则在文件末尾追加内容 |
+| b    | 二进制模式（可与其他模式组合使用）                           |
+| +    | 读、写模式（可与其他模式组合使用）                           |
+
+如果没有增加模式 ”b"，则默认创建的是文本文件对象，处理的基本单元是 “字符”。如果是二进制模式 “b" ，则创建的是二进制文件对象，处理的基本单元是 "字节"
+
+### 文本文件的写入
+
+写入步骤：
+
+1. 创建文件对象
+2. 写入数据
+3. 关闭文件对象
+
+```python
+#例
+f = open("a.txt", "a")
+s = "Hello\nWorld\n"
+f.write(s)
+f.close()
+```
+
