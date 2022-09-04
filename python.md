@@ -1761,3 +1761,225 @@ f.write(s)
 f.close()
 ```
 
+### 文字编码
+
+1. ASCII : 7位表示一个字符，最高位为0。只能表示128个字符。
+2. ISO8859-1：8位表示1个字符，能表示256个字符。兼容ASCII。
+3. GB***：兼容ISO8859-1.英文1个字节，汉字2个字节。
+4. UTF-8：变长编码，1-4个字节表示1个字符；英文1个字节，汉字3个字节。
+5. Unicode：定长编码，2个字节表示1个字符。与ISO不兼容。UTF-8相当于是Unicode的实现。
+
+### 中文乱码问题
+
+windows操作系统默认的编码是GBK，Linux操作系统默认是UTF-8。当我们用open()时，调用的是操作系统打开的文件，默认是GBK。
+
+```python
+#如果想以utf-8的方式写入
+f = open(r"b.txt", "w", encoding = "utf-8")
+f.write("Hello世界")
+f.close()
+```
+
+### 文件的换行写入
+
+```python
+f = open(r"d:\bb.txt", "w", encoding = "utf-8")
+s = ["Hello\n", "World\n"]
+f.writelines(s)
+f.close()
+```
+
+### close() 关闭文件流
+
+由于文件底层是由操作系统控制，所以打开的文件对象必须显式调用 close() 方法关闭文件对象。当调用 close() 方法时，首先会把缓冲区数据写入文件（也可以直接调用 flush() 方法），再关闭文件，释放文件对象。
+
+为确保打开的文件对象正常关闭，一般结合异常机制的 finally 或者 with 关键字实现无论何种情况都能关闭打开的文件对象。
+
+```python
+try:
+    f = open(r"c.txt", "a")
+    str = "HelloWorld!"
+    f.write(str)
+except BaseException as e:
+    print(e)
+finally:
+    f.close()
+    
+    
+#或者使用with，不论什么原有跳出with块，都能确保文件正确的关闭
+#并且可以在代码块执行完毕后自动还原进入该代码块时的现场
+s = ["Hello\n", "World\n"]
+with open(r"d:\bb.txt", "w") as f:
+    f.writelines(s)
+
+```
+
+### 文本文件的读取
+
+文件的读取一般使用如下三个方法：
+
+1. read([size])
+
+   从文件中读取 size 个字符，并作为结果返回。如果没有 size 参数，则读取整个文件。读取到文件末尾，会返回空字符串。
+
+2. readline()
+
+   读取一行内容作为结果返回。读取到文件末尾，会返回空字符串。
+
+3. readlines()
+
+   文本文件中，每一行作为一个字符串存入列表中，返回该列表。
+
+```python
+#文件较小时，一次将文件内容读入到程序中
+with open(r"c.txt", "r", encoding="utf-8") as f:
+    s = f.read()
+    print(s)
+
+#按行读取一个文件
+with open(r"c.txt", "r") as f:
+    while True:
+        fragment = f.readline()
+        if not fragment:
+            break
+        else:
+            print(fragment, end="")
+
+#使用迭代器（每次返回一行）读取文本文件
+with open(r"c.txt", "r") as f:
+    for a in f:
+        #print会自动加换行，所以将end设置为""
+        print(a, end="")
+        
+#例
+with open("c.txt", "r") as f:
+    s = f.readlines()
+    lines = [line.rstrip() + "  #" + str(index) + "\n" for index, line in enumerate(s)]
+
+with open("d.txt", 'w') as f:
+    f.writelines(lines)
+
+```
+
+ ### 二进制文件的赋值
+
+```python
+with open("threadPool.png", "rb") as r:
+    with open("threadPool_copy.png", "wb") as w:
+        w.writelines(r.readlines())
+
+```
+
+### 文件对象的常用方法
+
+```python
+seek(offset[,whence])
+# 把文件指针移动到新的位置，offset 表示相对于whence的多少个字节的偏移量
+# off为正往结束方向移动，为负往开始方向移动
+# whence不同的值代表不同含义：
+# 0：从文件头开始计算（默认值）
+# 1：从当前位置开始计算
+# 2：从文件尾开始计算
+tell()
+# 返回文件指针的当前位置
+truncate([size])
+# 不论指针在什么位置，只留下指针前 size 个字节的内容，其余全部删除
+# 如果没有传入size，则当指针当前位置到文件末尾内容全部删除
+```
+
+### 使用pickle序列化
+
+```python
+#obj就是要被序列化的对象，file指的是存储的文件
+pickle.dump(obj, file)
+#从file读取数据，反序列化成对象
+pickle.load(file)
+
+#例
+import pickle
+with open(r"data.dat", "wb") as f:
+    a = "Hello"
+    b = 123
+    c = [1, 2, 3]
+    pickle.dump(a, f)
+    pickle.dump(b, f)
+    pickle.dump(c, f)
+    
+with open(r"data.dat", "rb") as f:
+    a = pickle.load(f)
+    b = pickle.load(f)
+    c = pickle.load(f)
+    print(a, b, c)
+
+#序列化前和序列化后的对象id不同
+```
+
+### CSV文件的操作
+
+CSV（Comma Separated Values) 是逗号分隔符文本格式，常用于数据交换、Excel文件和数据库数据的导入和导出。与Excel文件不同，CSV文件中：
+
+1. 值没有类型，所有值都是字符串
+2. 不能指定字体颜色等样式
+3. 不能指定单元格的宽高，不能合并单元格
+4. 没有多个工作表
+5. 不能嵌入图像图表
+
+```python
+import csv
+
+with open(r"file.csv", "r") as f:
+    table = csv.reader(f)
+    for row in table:
+        print(row)
+        
+with open("table2.csv", "w", newline="") as f:
+    table = csv.writer(f)
+    table.writerow(["name", "age"])
+    table.writerow(["JJJ", "29"])
+    table.writerow(["KKK", "222"])
+    
+    
+```
+
+### os和os.path模块
+
+os模块可以帮助我们直接对操作系统进行操作。可以直接调用操作系统的可执行文件、命令，直接操作文件、目录等。在系统运维的核心基础。
+
+```python
+#os.system调用windows系统的记事本程序
+import os
+os.system("notepad.exe")
+#调用windows系统中的ping命令
+os.system("ping www.baidu.com")
+#直接调用可执行文件
+os.startfile(r"C:\Program File\......")
+```
+
+### OS模块-文件和目录操作
+
+可以通过文件对象实现对于文件内容的读写操作。如果，还需要对文件和目录做其他操作，可以使用os和os.path模块。
+
+os模块下常用操作文件的方法
+
+| 方法名            | 描述                           |
+| ----------------- | ------------------------------ |
+| remove(path)      | 删除指定文件                   |
+| rename(src, dest) | 重命名文件或目录               |
+| stat(path)        | 返回文件的所有属性             |
+| listdir(path)     | 返回path目录下的文件和目录列表 |
+
+os模块下关于目录操作的相关方法，汇总如下：
+
+| 方法名                          | 描述                              |
+| ------------------------------- | --------------------------------- |
+| mkdir(path)                     | 创建目录                          |
+| makedirs(path1/path2/path3/...) | 创建多级目录                      |
+| rmdir(path)                     | 删除目录                          |
+| removedirs(path1/path2...)      | 删除多级目录                      |
+| getcwd()                        | 返回当前工作目录:current work dir |
+| chdir(path)                     | 把path设为当前工作目录            |
+| walk()                          | 遍历目录树                        |
+| sep                             | 当前操作系统所使用的路径分隔符    |
+
+
+
