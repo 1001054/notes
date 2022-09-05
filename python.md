@@ -1983,3 +1983,121 @@ os模块下关于目录操作的相关方法，汇总如下：
 
 
 
+### os.path模块
+
+os.path模块提供了目录相关（路径判断、路径切分、路径链接、文件夹遍历）的操作
+
+| 方法               | 描述 |
+| ------------------ | ---- |
+| isabs(path)        | 判断path是否绝对路径 |
+| isdir(path)        | 判断path是否为目录 |
+| isfile(path)       | 判断path是否为文件 |
+| exists(path)       | 判断指定路径的文件是否存在 |
+| getsize(filename)  | 返回文件的大小 |
+| abspath(path)      | 返回绝对路径 |
+| dirname(p)         | 返回目录的路径 |
+| getatime(filename) | 返回文件的最后访问时间 |
+| getmtime(filename) | 返回文件的最后修改时间 |
+|walk(top,func,arg)| 递归方式遍历目录 |
+|join(path,*paths)| 连接多个path |
+|split(path)| 对路径进行分割，以列表形式返回 |
+|splitext(path)| 从路径中分割文件的扩展名 |
+
+```python
+#打印出工作空间中所有py文件
+path = os.getcwd()
+py_names = [file for file in os.listdir(path) if file.endswith(".py")]
+for name in py_names:
+    print(name)
+```
+
+### walk()递归遍历所有文件和目录
+
+返回一个3个元素的元组迭代器，（dirpath, dirnames, filenames)
+
+1. dirpath: 要列出指定目录的路径
+2. dirnames: 目录下所有文件夹
+3. filenames: 目录下的所有文件
+
+```python
+#打印工作空间所有文件和目录的路径
+import os
+
+path = os.getcwd()
+list_files = os.walk(path)
+
+for (dirpath, dirnames, filenames) in list_files:
+    for dirname in dirnames:
+        print(os.path.join(dirpath, dirname))
+    for filename in filenames:
+        print(os.path.join(dirpath, filename))
+
+```
+
+### shutil模块（拷贝和压缩）
+
+shutil模块是python标准库中提供的，主要用来做文件和文件夹的拷贝、移动、删除等。还可以做文件和文件夹的压缩、解压缩操作。
+
+os模块提供了对目录或文件的一般操作。shutil模块作为补充，提供了移动、复制、压缩、解压等操作，这些os模块都没有提供。
+
+```python
+import shutil
+import zipfile
+
+shutil.copyfile("a.txt", "a_copy.txt")
+shutil.copytree("movie_a", "movie_b")
+shutil.copytree("movie/HongKong", "movie_b", ignore=shutil.ignore_patterns("*.txt", "*.html"))
+
+#压缩
+shutil.make_archive("movie_to/TT", "zip", "movie_from/GG")
+#或
+z1 = zipfile.ZipFile("d:/a.zip", "w")
+z1.write("1.txt")
+z1.write("2.txt")
+z1.close()
+#解压缩
+x = zipfile.ZipFile("d:/a.zip", "r")
+x.extractall("notes")
+x.close()
+
+
+```
+
+### 模块
+
+当导入一个模块时，模块中的代码都会被执行。不过，如果再次导入这个模块，则不会再次执行。
+
+一个模块无论导入多少次，这个模块在整个解释器进程内有且仅有一个实例对象。
+
+```python
+from 模块名 import 成员1，成员2，...
+#动态导入
+s = "math"
+m = __import__(s)
+#以上方法在python2和python3中有差异，会导致意外错误。如果需要动态导入可以使用importlib模块
+import importlib
+a = importlib.import_module("math")
+```
+
+### 包package的使用
+
+1. pycharm中创建包：在要创建包的地方单击右键：New-->Python package即可。pycharm会自动生成带有__init\_\_.py文件的包。
+2. 导入包的本质其实是 “导入了包的__init\_\_.py” 文件。也就是说，“import pack1" 意味着执行了包 pack1 下面的 \_\_init\_\_.py 文件。这样，可以在 \_\_init\_\_.py 中批量导入我们需要的模块，而不再需要一个个的导入。
+3. __init\_\_.py的三个核心作用：
+   1. 作为包的标识，不能删除
+   2. 用来实现模糊导入
+   3. 导入包实质是执行__init\_\_.py文件，可以在在该文件中做这个包的初始化、以及需要统一执行代码。
+4. 可以在init文件中定义__all\_\_变量，该变量是一个列表，所包含的模块会被 from package import * 所导入。
+
+### sys.path 和模块搜索路径
+
+解释器找某个模块文件的顺序：
+
+1. 内置模块
+2. 当前目录
+3. 程序的主目录
+4. pythonpath目录（如果已经设置了pythonpath环境变量）
+5. 标准连结库目录
+6. 第三方库目录（site-packages目录）
+7. .pth文件的内容（如果存在的话）
+8. sys.path.append()历史添加的目录
